@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: maquina-viral-external-scheduler
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   run-scheduler:
