@@ -1,20 +1,20 @@
 name: Maquina Viral External Scheduler
 
 on:
-  schedule:
-    - cron: '3-59/5 * * * *'
   workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
 
 concurrency:
   group: maquina-viral-external-scheduler
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   run-scheduler:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
-      - name: Trigger Maquina Viral scheduler
+      - name: Trigger Maquina Viral scheduler loop
         shell: bash
         env:
           SCHEDULER_URL: https://maquina-viral.vercel.app/api/schedule/run?limit=10
@@ -26,13 +26,35 @@ jobs:
             exit 1
           fi
 
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5 6; do
             echo "Scheduler pass $attempt"
             curl --fail --show-error --silent \
               --request POST "$SCHEDULER_URL" \
               --header "Authorization: Bearer $CRON_URL_TOKEN"
             echo
-            if [ "$attempt" != "4" ]; then
-              sleep 75
+            if [ "$attempt" != "6" ]; then
+              sleep 70
             fi
           done
+
+      - name: Start next scheduler cycle
+        if: always()
+        shell: bash
+        env:
+          WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WORKFLOW_PAT:-}" ]; then
+            echo "::error::WORKFLOW_PAT is missing."
+            exit 1
+          fi
+
+          curl --fail --show-error --silent \
+            --request POST \
+            --url "https://api.github.com/repos/$REPO/actions/workflows/scheduler.yml/dispatches" \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $WORKFLOW_PAT" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --data '{"ref":"main"}'
+          echo "Next cycle requested."
