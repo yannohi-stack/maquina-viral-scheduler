@@ -1,0 +1,38 @@
+name: Maquina Viral External Scheduler
+
+on:
+  schedule:
+    - cron: '3-59/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: maquina-viral-external-scheduler
+  cancel-in-progress: false
+
+jobs:
+  run-scheduler:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Trigger Maquina Viral scheduler
+        shell: bash
+        env:
+          SCHEDULER_URL: https://maquina-viral.vercel.app/api/schedule/run?limit=10
+          CRON_URL_TOKEN: ${{ secrets.CRON_URL_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_URL_TOKEN:-}" ]; then
+            echo "::error::CRON_URL_TOKEN is missing."
+            exit 1
+          fi
+
+          for attempt in 1 2 3 4; do
+            echo "Scheduler pass $attempt"
+            curl --fail --show-error --silent \
+              --request POST "$SCHEDULER_URL" \
+              --header "Authorization: Bearer $CRON_URL_TOKEN"
+            echo
+            if [ "$attempt" != "4" ]; then
+              sleep 75
+            fi
+          done
