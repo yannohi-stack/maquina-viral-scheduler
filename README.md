@@ -2,9 +2,14 @@
 
 Este repositorio publico guarda apenas o robo externo do Maquina Viral.
 
-Ele nao contem codigo do sistema nem tokens visiveis. O segredo fica salvo em GitHub Actions Secrets como `CRON_URL_TOKEN`.
+Ele nao contem codigo do sistema nem tokens visiveis. Os segredos ficam salvos em GitHub Actions Secrets:
 
-A cada 5 minutos o workflow chama:
+- `CRON_URL_TOKEN`: autoriza chamada no Maquina Viral.
+- `WORKFLOW_PAT`: permite o workflow iniciar o proximo ciclo automaticamente.
+
+O workflow chama a agenda varias vezes por ciclo e, ao terminar, dispara a proxima execucao sozinho.
+
+Endpoint chamado:
 
 ```text
 https://maquina-viral.vercel.app/api/schedule/run?limit=10
